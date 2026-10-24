@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b2a6f">
+<title>Input Data Warga</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --biru-tua:#0b2a6f; --biru:#1558c9; --biru-muda:#4aa3ff; --oranye:#ff8a1f;
+    --teks:#1e293b; --abu:#64748b; --garis:#d8e0ee; --bg:#eef3fb; --kartu:#fff; --radius:16px;
+    --ok:#15803d; --salah:#dc2626;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:'Poppins',system-ui,sans-serif;background:var(--bg);color:var(--teks);min-height:100vh}
+  .wadah{max-width:640px;margin:0 auto;min-height:100vh;background:var(--bg)}
+
+  .header{background:linear-gradient(160deg,#0a2463 0%,#1558c9 65%,#4aa3ff 100%);color:#fff;
+    padding:calc(14px + env(safe-area-inset-top)) 16px 18px;display:flex;align-items:center;gap:12px;
+    border-radius:0 0 24px 24px}
+  .header a.kembali{flex:none;width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.18);color:#fff;
+    display:flex;align-items:center;justify-content:center;text-decoration:none}
+  .header h1{font-size:1.02rem;font-weight:600;line-height:1.25}
+  .header small{display:block;font-size:.72rem;opacity:.85;font-weight:400}
+
+  main{padding:16px 16px 40px}
+  .kartu{background:var(--kartu);border-radius:var(--radius);padding:16px;margin-bottom:14px;
+    box-shadow:0 6px 16px rgba(11,42,111,.08);transition:opacity .2s}
+  .kartu h2{font-size:.88rem;font-weight:600;color:var(--biru-tua);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .kartu h2 i{color:var(--biru)}
+  .kartu.terkunci{opacity:.45;pointer-events:none}
+
+  .banner{display:none;border-radius:12px;padding:10px 12px;font-size:.78rem;margin-bottom:12px;line-height:1.45}
+  .banner.tampil{display:block}
+  .banner.info{background:#e8f1ff;color:#0b3a8a;border:1px solid #bcd3fb}
+  .banner.baru{background:#fff4e5;color:#8a4b00;border:1px solid #ffd9a6}
+  .banner.galat{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+  .banner.ok{background:#dcfce7;color:#166534;border:1px solid #bbf7d0}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .penuh{grid-column:1 / -1}
+  @media (max-width:420px){.grid{grid-template-columns:1fr}}
+  label{display:block;font-size:.72rem;font-weight:500;color:var(--abu);margin-bottom:4px}
+  label .wajib{color:var(--salah)}
+  label .oto{font-weight:400;color:var(--biru);margin-left:4px}
+  input,select{width:100%;padding:10px 12px;border:1.5px solid var(--garis);border-radius:10px;font:inherit;
+    font-size:.88rem;background:#fff;color:var(--teks);outline:none;transition:border-color .15s}
+  input:focus,select:focus{border-color:var(--biru)}
+  input[readonly]{background:#f1f5fb;color:var(--biru-tua);font-weight:500}
+  input.terisi-otomatis{background:#f1f7ff}
+  input:disabled,select:disabled{background:#f1f5f9;color:#94a3b8}
+  .bantu{font-size:.68rem;color:var(--abu);margin-top:3px}
+  .hitung{font-size:.68rem;color:var(--abu);text-align:right;margin-top:2px}
+
+  .baris-telp{display:flex;gap:8px}
+  .baris-telp input{flex:1;min-width:0}
+  .btn-verif{display:none;flex:none;padding:0 14px;border:0;border-radius:10px;font:inherit;font-size:.8rem;font-weight:600;
+    color:#fff;cursor:pointer;background:linear-gradient(135deg,var(--biru),var(--biru-muda))}
+  .btn-verif:disabled{opacity:.6;cursor:wait}
+
+  .unggah{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .btn-unggah{padding:10px 8px;border:1.5px dashed var(--biru-muda);border-radius:10px;background:#f4f9ff;color:var(--biru-tua);
+    font:inherit;font-size:.78rem;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .btn-unggah:disabled{opacity:.5;cursor:not-allowed}
+  .info-file{display:none;margin-top:8px;align-items:center;gap:10px;padding:8px;border:1.5px solid var(--garis);border-radius:10px}
+  .info-file.ada{display:flex}
+  .info-file img{width:44px;height:44px;object-fit:cover;border-radius:8px;flex:none}
+  .info-file .ikon-pdf{width:44px;height:44px;border-radius:8px;background:#fee2e2;color:#dc2626;font-size:1.3rem;
+    display:flex;align-items:center;justify-content:center;flex:none}
+  .info-file .nama{flex:1;min-width:0;font-size:.75rem;color:var(--abu);line-height:1.4}
+  .info-file .nama b{display:block;color:var(--teks);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .info-file button{flex:none;width:30px;height:30px;border:0;border-radius:50%;background:#f1f5f9;color:var(--abu);font-size:1rem;cursor:pointer}
+
+  .pemilu{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .lencana{display:inline-block;padding:6px 14px;border-radius:999px;font-size:.82rem;font-weight:600;background:#e2e8f0;color:#475569}
+  .lencana.lokal{background:#dcfce7;color:#166534}
+  .lencana.luar{background:#dbeafe;color:#1e40af}
+  .lencana.non{background:#f1f5f9;color:#64748b}
+
+  .btn{width:100%;padding:13px;border:0;border-radius:12px;font:inherit;font-weight:600;font-size:.95rem;color:#fff;
+    cursor:pointer;background:linear-gradient(135deg,#ff9a3c,#ff7a00);box-shadow:0 8px 20px rgba(255,122,0,.35)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+  .btn.sekunder{background:linear-gradient(135deg,var(--biru),var(--biru-muda));box-shadow:0 8px 20px rgba(21,88,201,.3)}
+  .btn.polos{background:#fff;color:var(--biru-tua);border:1.5px solid var(--garis);box-shadow:none}
+
+  .sukses{display:none;text-align:center}
+  .sukses.tampil{display:block}
+  .sukses .centang{width:56px;height:56px;border-radius:50%;background:#dcfce7;color:var(--ok);font-size:1.6rem;
+    display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+  .sukses h2{justify-content:center;font-size:1rem}
+  .ringkas{margin:10px 0 14px;font-size:.8rem;color:var(--abu);line-height:1.7}
+  .ringkas b{color:var(--biru-tua)}
+  .tombol-baris{display:grid;gap:10px}
+</style>
+</head>
+<body>
+<div class="wadah">
+
+  <header class="header">
+    <a class="kembali" href="index.html" aria-label="Kembali"><i class="fa-solid fa-arrow-left"></i></a>
+    <h1>Input Data Warga<small>Terbuka untuk umum</small></h1>
+  </header>
+
+  <main>
+    <!-- Hasil setelah menyimpan -->
+    <section class="kartu sukses" id="kartuSukses">
+      <div class="centang"><i class="fa-solid fa-check"></i></div>
+      <h2>Data tersimpan</h2>
+      <div class="ringkas" id="ringkasSukses"></div>
+      <div class="tombol-baris">
+        <button class="btn sekunder" id="btnTambahAnggota" type="button"><i class="fa-solid fa-user-plus"></i> Tambah anggota keluarga ini (NKK sama)</button>
+        <button class="btn polos" id="btnKeluargaBaru" type="button">Input keluarga baru</button>
+      </div>
+    </section>
+
+    <form id="form" autocomplete="off" novalidate>
+      <div class="banner" id="banner"></div>
+
+      <section class="kartu">
+        <h2><i class="fa-solid fa-people-roof"></i> Data Keluarga</h2>
+        <div class="grid">
+          <div class="penuh">
+            <label for="nkk">NKK <span class="wajib">*</span></label>
+            <input id="nkk" type="text" inputmode="numeric" maxlength="16" placeholder="16 digit Nomor Kartu Keluarga">
+            <div class="hitung"><span id="hitungNkk">0</span>/16</div>
+          </div>
+          <div class="penuh">
+            <label for="no_hp">No. HP Keluarga <span class="wajib">*</span></label>
+            <div class="baris-telp">
+              <input id="no_hp" type="tel" inputmode="tel" placeholder="08xxxxxxxxxx">
+              <button type="button" class="btn-verif" id="btnVerifikasi">Verifikasi</button>
+            </div>
+            <div class="bantu">Dipakai sebagai verifikasi bila ada anggota keluarga lain yang ditambahkan.</div>
+          </div>
+          <div class="penuh">
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="nama@email.com">
+          </div>
+          <div class="penuh">
+            <label for="nama_kk">Nama KK (Kepala Keluarga)</label>
+            <input id="nama_kk" type="text" placeholder="Nama kepala keluarga">
+          </div>
+          <div class="penuh">
+            <label for="alamat">Alamat</label>
+            <input id="alamat" type="text" placeholder="Jalan, nomor rumah, RT/RW">
+          </div>
+          <div class="penuh">
+            <label for="status_tinggal">Status Tinggal</label>
+            <select id="status_tinggal">
+              <option value="">— pilih —</option>
+              <option>WAT</option><option>WAP</option><option>WDT</option><option>WDS</option>
+            </select>
+          </div>
+          <div class="penuh">
+            <label>Link KK (foto atau berkas Kartu Keluarga)</label>
+            <div class="unggah">
+              <button type="button" class="btn-unggah" id="btnKamera"><i class="fa-solid fa-camera"></i> Foto langsung</button>
+              <button type="button" class="btn-unggah" id="btnFile"><i class="fa-solid fa-file-arrow-up"></i> Pilih file</button>
+            </div>
+            <input type="file" id="inKamera" accept="image/*" capture="environment" hidden>
+            <input type="file" id="inFile" accept="application/pdf,image/jpeg,image/png" hidden>
+            <div class="info-file" id="infoFile"></div>
+            <div class="bantu" id="bantuFile">PDF, JPG, atau PNG. Maksimal 5 MB.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="kartu" id="kartuPribadi">
+        <h2><i class="fa-solid fa-id-card"></i> Data Pribadi</h2>
+        <div class="grid">
+          <div class="penuh">
+            <label for="nik">NIK <span class="wajib">*</span></label>
+            <input id="nik" type="text" inputmode="numeric" maxlength="16" placeholder="16 digit NIK">
+            <div class="hitung"><span id="hitungNik">0</span>/16</div>
+          </div>
+          <div class="penuh">
+            <label for="nama_lengkap">Nama Lengkap <span class="wajib">*</span></label>
+            <input id="nama_lengkap" type="text" placeholder="Boleh beserta gelar">
+          </div>
+          <div class="penuh">
+            <label for="nama_asli">Nama Asli <span class="oto">(otomatis, tanpa gelar)</span></label>
+            <input id="nama_asli" type="text" readonly tabindex="-1">
+          </div>
+          <div>
+            <label for="jender">Jender <span class="wajib">*</span></label>
+            <select id="jender"><option value="">— pilih —</option><option>Laki-laki</option><option>Perempuan</option></select>
+          </div>
+          <div>
+            <label for="hubungan">Hubungan dalam KK</label>
+            <select id="hubungan">
+              <option value="">— pilih —</option>
+              <option>Kepala Keluarga</option><option>Istri</option><option>Suami</option><option>Anak</option>
+              <option>Menantu</option><option>Cucu</option><option>Orang Tua</option><option>Mertua</option>
+              <option>Famili Lain</option><option>Lainnya</option>
+            </select>
+          </div>
+          <div>
+            <label for="tempat_lahir">Tempat Lahir</label>
+            <input id="tempat_lahir" type="text">
+          </div>
+          <div>
+            <label for="tgl_lahir">Tanggal Lahir <span class="wajib">*</span></label>
+            <input id="tgl_lahir" type="date">
+          </div>
+          <div>
+            <label for="usia">Usia <span class="oto">(otomatis)</span></label>
+            <input id="usia" type="text" readonly tabindex="-1">
+          </div>
+          <div>
+            <label for="agama">Agama</label>
+            <select id="agama">
+              <option value="">— pilih —</option>
+              <option>Islam</option><option>Kristen</option><option>Katolik</option>
+              <option>Hindu</option><option>Buddha</option><option>Konghucu</option>
+            </select>
+          </div>
+          <div>
+            <label for="status">Status (perkawinan)</label>
+            <select id="status">
+              <option value="">— pilih —</option>
+              <option>Belum Kawin</option><option>Kawin</option><option>Cerai Hidup</option><option>Cerai Mati</option>
+            </select>
+          </div>
+          <div>
+            <label for="pendidikan">Pendidikan</label>
+            <select id="pendidikan">
+              <option value="">— pilih —</option>
+              <option>Belum/Tidak Sekolah</option><option>SD</option><option>SMP</option><option>SMA/SMK</option>
+              <option>D1/D2/D3</option><option>D4/S1</option><option>S2</option><option>S3</option>
+            </select>
+          </div>
+          <div class="penuh">
+            <label for="pekerjaan">Pekerjaan</label>
+            <input id="pekerjaan" type="text" list="daftarPekerjaan" placeholder="Pilih atau ketik">
+            <datalist id="daftarPekerjaan">
+              <option value="PNS"><option value="TNI"><option value="Polri"><option value="Wiraswasta">
+              <option value="Karyawan Swasta"><option value="Pelajar/Mahasiswa"><option value="Mengurus Rumah Tangga">
+              <option value="Pensiunan"><option value="Petani/Nelayan"><option value="Buruh"><option value="Belum/Tidak Bekerja">
+            </datalist>
+            <div class="bantu">Tulis “TNI” atau “Polri” bagi anggota aktif agar status pemilu terhitung benar.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="kartu" id="kartuPemilu">
+        <h2><i class="fa-solid fa-check-to-slot"></i> Status dalam Pemilu <span class="oto" style="font-weight:400;font-size:.7rem;color:var(--biru)">(otomatis)</span></h2>
+        <div class="pemilu">
+          <span class="lencana" id="lencanaPemilu">—</span>
+          <span class="bantu" style="max-width:55%;text-align:right" id="alasanPemilu">Isi tanggal lahir &amp; status tinggal</span>
+        </div>
+      </section>
+
+      <button class="btn" id="btnSimpan" type="submit"><i class="fa-solid fa-floppy-disk"></i> Simpan</button>
+    </form>
+  </main>
+</div>
+
+<script>
+/* ---------- Konfigurasi Supabase (sama dengan index.html) ---------- */
+const SUPABASE_URL = 'https://uiogfdqhhjepambzvrmu.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_gXXzfdYBEWbTNx_PkcWgqA_wIA7mRFd';
+const BUCKET_KK = 'kk';
+const MAKS_BERKAS = 5 * 1024 * 1024;   // 5 MB
+
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = (id) => document.getElementById(id);
+
+/* Status NKK yang sedang diketik:
+   kosong | baru | perlu_verifikasi | tanpa_telp | terverifikasi */
+let statusNkk = 'kosong';
+let berkas = null;                       // { blob, tipe, ext, nama, ukuran, pratinjau }
+
+const FIELD_KELUARGA = ['nama_kk','alamat','status_tinggal','email'];
+const FIELD_PRIBADI  = ['nik','nama_lengkap','jender','hubungan','tempat_lahir','tgl_lahir','agama','status',
+                        'pendidikan','pekerjaan'];
+
+/* ---------- Utilitas ---------- */
+function hanyaAngka(s){ return String(s||'').replace(/\D/g,''); }
+function uuid(){
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map(x => x.toString(16).padStart(2,'0')).join('');
+  return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
+}
+function tampilBanner(jenis, teks){
+  const b = $('banner'); b.className = 'banner tampil ' + jenis; b.textContent = teks;
+}
+function sembunyiBanner(){ $('banner').className = 'banner'; }
+function keAtas(){ window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function ukuranTeks(n){ return n >= 1048576 ? (n/1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n/1024)) + ' KB'; }
+
+/* Nama tanpa gelar (aturan sama dengan di database) */
+function namaTanpaGelar(nama){
+  if (!nama) return '';
+  const depan = String(nama).split(',')[0];
+  const gelarDepan = /^(dr|drs|dra|ir|prof|h|hj|haji|hajjah|kh|ust|ustadz|ustadzah|dato|datuk)\.?$/i;
+  const gelarBelakang = /^[A-Za-z]{1,4}\.[A-Za-z.]+$/;
+  const kata = depan.trim().split(/\s+/).filter(k => k && !gelarDepan.test(k) && !gelarBelakang.test(k));
+  return kata.join(' ') || depan.trim();
+}
+function hitungUsia(tgl){
+  if (!tgl) return null;
+  const [y,m,d] = tgl.split('-').map(Number);
+  if (!y || !m || !d) return null;
+  const n = new Date();
+  let usia = n.getFullYear() - y;
+  if (n.getMonth()+1 < m || (n.getMonth()+1 === m && n.getDate() < d)) usia--;
+  return usia < 0 ? null : usia;
+}
+/* Pemilih Lokal: usia>=17, bukan TNI/Polri, hidup, WAT/WAP. Pemilih Luar: WDT/WDS. Selain itu Non Pemilih. */
+function hitungPemilu(usia, pekerjaan, statusTinggal){
+  if (usia === null || usia < 17) return ['Non Pemilih', usia === null ? 'Tanggal lahir belum diisi' : 'Usia di bawah 17 tahun'];
+  const kerja = pekerjaan || '';
+  if (/(^|[^a-z])(tni|polri|polisi)([^a-z]|$)/i.test(kerja) && !/pensiun/i.test(kerja))
+    return ['Non Pemilih', 'Anggota TNI/Polri'];
+  const st = (statusTinggal || '').toUpperCase();
+  if (st === 'WAT' || st === 'WAP') return ['Pemilih Lokal', 'Usia ≥ 17, status tinggal ' + st];
+  if (st === 'WDT' || st === 'WDS') return ['Pemilih Luar', 'Usia ≥ 17, status tinggal ' + st];
+  return ['Non Pemilih', 'Status tinggal belum dipilih / bukan WAT, WAP, WDT, WDS'];
+}
+function segarkanOtomatis(){
+  $('nama_asli').value = namaTanpaGelar($('nama_lengkap').value);
+  const usia = hitungUsia($('tgl_lahir').value);
+  $('usia').value = usia === null ? '' : usia + ' tahun';
+  const [status, alasan] = hitungPemilu(usia, $('pekerjaan').value, $('status_tinggal').value);
+  const l = $('lencanaPemilu');
+  l.textContent = status;
+  l.className = 'lencana ' + (status === 'Pemilih Lokal' ? 'lokal' : status === 'Pemilih Luar' ? 'luar' : 'non');
+  $('alasanPemilu').textContent = alasan;
+}
+
+/* ---------- Kunci form sampai NKK terverifikasi ---------- */
+function aturKunci(){
+  const kunci = statusNkk === 'perlu_verifikasi' || statusNkk === 'tanpa_telp';
+  [...FIELD_KELUARGA, 'btnKamera', 'btnFile'].forEach(id => { $(id).disabled = kunci; });
+  $('kartuPribadi').classList.toggle('terkunci', kunci);
+  $('kartuPemilu').classList.toggle('terkunci', kunci);
+  $('btnSimpan').disabled = kunci;
+  $('btnVerifikasi').style.display = statusNkk === 'perlu_verifikasi' ? 'block' : 'none';
+}
+function kosongkanOtomatis(){
+  FIELD_KELUARGA.forEach(f => { if ($(f).classList.contains('terisi-otomatis')){ $(f).value = ''; $(f).classList.remove('terisi-otomatis'); } });
+}
+function setStatus(s){ statusNkk = s; aturKunci(); segarkanOtomatis(); }
+
+/* ---------- NKK: cek baru / sudah terdaftar, lalu verifikasi dengan No. HP ---------- */
+async function cekNkk(denganTelp){
+  const nkk = hanyaAngka($('nkk').value);
+  if (nkk.length !== 16) return;
+  const tombol = $('btnVerifikasi');
+  if (denganTelp){ tombol.disabled = true; tombol.textContent = 'Memeriksa…'; }
+  try{
+    const { data, error } = await db.rpc('cari_keluarga', { p_nkk: nkk, p_telp: denganTelp ? $('no_hp').value : '' });
+    if (error) throw error;
+    if (nkk !== hanyaAngka($('nkk').value)) return;          // NKK diubah saat menunggu
+
+    if (data.status === 'baru'){
+      setStatus('baru');
+      tampilBanner('baru', 'NKK baru. Lengkapi data keluarga, lalu data pribadi. No. HP akan dipakai sebagai verifikasi untuk anggota keluarga berikutnya.');
+    } else if (data.status === 'perlu_verifikasi'){
+      setStatus(data.tanpa_telp ? 'tanpa_telp' : 'perlu_verifikasi');
+      if (data.tanpa_telp)
+        tampilBanner('galat', 'NKK ini sudah terdaftar, tetapi nomor HP keluarga belum tercatat sehingga tidak dapat diverifikasi. Hubungi pengurus RT.');
+      else if (!data.ok)
+        tampilBanner('galat', data.pesan);
+      else
+        tampilBanner('baru', 'NKK sudah terdaftar. Masukkan No. HP yang terdaftar pada keluarga ini, lalu tekan Verifikasi untuk menambah anggota.');
+    } else if (data.status === 'terverifikasi'){
+      setStatus('terverifikasi');
+      FIELD_KELUARGA.forEach(f => {
+        if (data[f] && !$(f).value){ $(f).value = data[f]; $(f).classList.add('terisi-otomatis'); }
+      });
+      tampilBanner('ok', 'Terverifikasi (' + data.jumlah + ' anggota terdaftar). Data keluarga terisi otomatis' +
+        (data.ada_berkas_kk ? ', berkas KK sudah ada (unggah lagi hanya bila ingin mengganti)' : '') +
+        '. Cukup isi data anggota yang ditambahkan.');
+      segarkanOtomatis();
+    } else if (!data.ok){
+      tampilBanner('galat', data.pesan || 'Terjadi kesalahan.');
+    }
+  }catch(err){
+    console.error(err); tampilBanner('galat', 'Gagal memeriksa NKK. Periksa koneksi.');
+  }finally{
+    tombol.disabled = false; tombol.textContent = 'Verifikasi';
+  }
+}
+
+/* ---------- Event input ---------- */
+$('nkk').addEventListener('input', e => {
+  e.target.value = hanyaAngka(e.target.value).slice(0,16);
+  $('hitungNkk').textContent = e.target.value.length;
+  kosongkanOtomatis(); sembunyiBanner();
+  statusNkk = 'kosong'; aturKunci();
+  if (e.target.value.length === 16) cekNkk(false);
+});
+$('no_hp').addEventListener('input', () => {
+  if (statusNkk === 'terverifikasi'){          // nomor diubah setelah verifikasi -> verifikasi ulang
+    kosongkanOtomatis();
+    setStatus('perlu_verifikasi');
+    tampilBanner('baru', 'Nomor HP diubah. Tekan Verifikasi lagi.');
+  }
+});
+$('btnVerifikasi').addEventListener('click', () => {
+  if (hanyaAngka($('no_hp').value).length < 9) return tampilBanner('galat', 'Isi No. HP keluarga (minimal 9 digit).');
+  cekNkk(true);
+});
+$('nik').addEventListener('input', e => {
+  e.target.value = hanyaAngka(e.target.value).slice(0,16);
+  $('hitungNik').textContent = e.target.value.length;
+});
+['nama_lengkap','tgl_lahir','pekerjaan','status_tinggal'].forEach(id => {
+  $(id).addEventListener('input', segarkanOtomatis);
+  $(id).addEventListener('change', segarkanOtomatis);
+});
+FIELD_KELUARGA.forEach(f => $(f).addEventListener('input', () => $(f).classList.remove('terisi-otomatis')));
+
+/* KK baru & orang ini Kepala Keluarga: nama KK = nama lengkapnya (bila nama KK masih kosong) */
+$('hubungan').addEventListener('change', () => {
+  if ($('hubungan').value === 'Kepala Keluarga' && !$('nama_kk').value && $('nama_lengkap').value)
+    $('nama_kk').value = $('nama_lengkap').value;
+});
+
+/* ---------- Foto / berkas KK ---------- */
+function tampilBerkas(){
+  const el = $('infoFile');
+  el.replaceChildren();
+  if (!berkas){ el.className = 'info-file'; return; }
+  el.className = 'info-file ada';
+  if (berkas.pratinjau){
+    const img = document.createElement('img'); img.src = berkas.pratinjau; img.alt = 'Pratinjau'; el.appendChild(img);
+  } else {
+    const ik = document.createElement('div'); ik.className = 'ikon-pdf'; ik.innerHTML = '<i class="fa-solid fa-file-pdf"></i>'; el.appendChild(ik);
+  }
+  const nama = document.createElement('div'); nama.className = 'nama';
+  const b = document.createElement('b'); b.textContent = berkas.nama;
+  nama.appendChild(b); nama.appendChild(document.createTextNode(ukuranTeks(berkas.ukuran)));
+  el.appendChild(nama);
+  const x = document.createElement('button'); x.type = 'button'; x.setAttribute('aria-label','Hapus'); x.textContent = '×';
+  x.addEventListener('click', hapusBerkas);
+  el.appendChild(x);
+}
+function hapusBerkas(){
+  if (berkas && berkas.pratinjau) URL.revokeObjectURL(berkas.pratinjau);
+  berkas = null; tampilBerkas();
+}
+/* Foto diperkecil (maks. 1800 px, JPEG) agar ringan diunggah */
+function kompresGambar(file){
+  return new Promise((ok, gagal) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const skala = Math.min(1, 1800 / Math.max(img.width, img.height));
+      const w = Math.round(img.width * skala), h = Math.round(img.height * skala);
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h); x.drawImage(img, 0, 0, w, h);
+      c.toBlob(b => { URL.revokeObjectURL(url); b ? ok(b) : gagal(new Error('gagal')); }, 'image/jpeg', 0.82);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); gagal(new Error('tidak terbaca')); };
+    img.src = url;
+  });
+}
+async function pilihBerkas(file){
+  if (!file) return;
+  try{
+    if (file.type === 'application/pdf'){
+      if (file.size > MAKS_BERKAS) return tampilBanner('galat', 'Ukuran PDF maksimal 5 MB.');
+      hapusBerkas();
+      berkas = { blob: file, tipe: 'application/pdf', ext: 'pdf', nama: file.name, ukuran: file.size, pratinjau: null };
+    } else if (file.type.startsWith('image/')){
+      const blob = await kompresGambar(file);
+      if (blob.size > MAKS_BERKAS) return tampilBanner('galat', 'Ukuran foto terlalu besar.');
+      hapusBerkas();
+      berkas = { blob, tipe: 'image/jpeg', ext: 'jpg', nama: file.name || 'foto-kk.jpg', ukuran: blob.size,
+                 pratinjau: URL.createObjectURL(blob) };
+    } else {
+      return tampilBanner('galat', 'Format berkas harus PDF, JPG, atau PNG.');
+    }
+    sembunyiBanner(); tampilBerkas();
+  }catch(err){
+    console.error(err); tampilBanner('galat', 'Foto tidak dapat dibaca. Coba foto ulang atau gunakan PDF/JPG/PNG.');
+  }
+}
+$('btnKamera').addEventListener('click', () => $('inKamera').click());
+$('btnFile').addEventListener('click', () => $('inFile').click());
+$('inKamera').addEventListener('change', e => { pilihBerkas(e.target.files[0]); e.target.value = ''; });
+$('inFile').addEventListener('change', e => { pilihBerkas(e.target.files[0]); e.target.value = ''; });
+
+async function unggahBerkas(nkk){
+  const path = nkk + '/' + uuid() + '.' + berkas.ext;
+  const { error } = await db.storage.from(BUCKET_KK).upload(path, berkas.blob, { contentType: berkas.tipe, upsert: false });
+  if (error) throw error;
+  return path;
+}
+
+/* ---------- Simpan ---------- */
+function validasi(){
+  if (hanyaAngka($('nkk').value).length !== 16) return ['nkk','NKK harus 16 digit angka.'];
+  if (hanyaAngka($('no_hp').value).length < 9) return ['no_hp','No. HP keluarga wajib diisi (minimal 9 digit).'];
+  if (statusNkk === 'perlu_verifikasi' || statusNkk === 'tanpa_telp') return ['no_hp','Verifikasi dulu dengan No. HP yang terdaftar pada keluarga ini.'];
+  if (hanyaAngka($('nik').value).length !== 16) return ['nik','NIK harus 16 digit angka.'];
+  if (!$('nama_lengkap').value.trim()) return ['nama_lengkap','Nama lengkap wajib diisi.'];
+  if (!$('jender').value) return ['jender','Jender wajib dipilih.'];
+  if (!$('tgl_lahir').value) return ['tgl_lahir','Tanggal lahir wajib diisi (dipakai untuk usia & status pemilu).'];
+  return null;
+}
+
+$('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const galat = validasi();
+  if (galat){ tampilBanner('galat', galat[1]); $(galat[0]).focus(); keAtas(); return; }
+
+  const nkk = hanyaAngka($('nkk').value);
+  const btn = $('btnSimpan'); btn.disabled = true; btn.textContent = 'Menyimpan…';
+  try{
+    let pathKk = null;
+    if (berkas){ btn.textContent = 'Mengunggah berkas KK…'; pathKk = await unggahBerkas(nkk); btn.textContent = 'Menyimpan…'; }
+
+    const payload = {
+      nik: hanyaAngka($('nik').value), nkk,
+      nama_lengkap: $('nama_lengkap').value.trim(), jender: $('jender').value,
+      tempat_lahir: $('tempat_lahir').value.trim(), tgl_lahir: $('tgl_lahir').value,
+      pekerjaan: $('pekerjaan').value.trim(), agama: $('agama').value, status: $('status').value,
+      alamat: $('alamat').value.trim(), email: $('email').value.trim(), pendidikan: $('pendidikan').value,
+      nama_kk: $('nama_kk').value.trim(), hubungan: $('hubungan').value, no_hp: $('no_hp').value.trim(),
+      link_kk: pathKk, status_tinggal: $('status_tinggal').value
+    };
+    const { data, error } = await db.rpc('tambah_warga', { p: payload });
+    if (error) throw error;
+    if (!data.ok){ tampilBanner('galat', data.pesan); keAtas(); return; }
+
+    $('ringkasSukses').replaceChildren();
+    const baris = (teks, tebal) => {
+      const d = document.createElement('div');
+      if (tebal){ const b = document.createElement('b'); b.textContent = tebal; d.appendChild(b); }
+      d.appendChild(document.createTextNode(teks)); $('ringkasSukses').appendChild(d);
+    };
+    baris(' (urutan ke-' + data.no_urut + ')', data.nama_asli);
+    baris('Usia ' + (data.usia ?? '-') + ' tahun · ' + data.status_pemilu);
+    baris('KK: ' + (data.nama_kk || '-'));
+    $('form').style.display = 'none';
+    $('kartuSukses').classList.add('tampil');
+    keAtas();
+  }catch(err){
+    console.error(err);
+    tampilBanner('galat', berkas ? 'Gagal mengunggah atau menyimpan. Periksa koneksi lalu coba lagi.' : 'Tidak dapat menyimpan. Periksa koneksi lalu coba lagi.');
+    keAtas();
+  }finally{
+    btn.textContent = 'Simpan'; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan'; aturKunci();
+  }
+});
+
+/* ---------- Setelah tersimpan ---------- */
+function kosongkan(ids){
+  ids.forEach(id => { const el = $(id); el.value = ''; el.classList.remove('terisi-otomatis'); });
+}
+function kembaliKeForm(){
+  $('kartuSukses').classList.remove('tampil');
+  $('form').style.display = 'block';
+  $('hitungNik').textContent = '0';
+  aturKunci(); segarkanOtomatis();
+}
+$('btnTambahAnggota').addEventListener('click', () => {
+  kosongkan(FIELD_PRIBADI);                  // NKK, No. HP, dan data keluarga dipertahankan
+  hapusBerkas();                             // berkas KK sudah tersimpan untuk keluarga ini
+  statusNkk = 'terverifikasi';               // keluarga baru saja disimpan dengan No. HP ini
+  tampilBanner('ok', 'NKK sama: data keluarga dipertahankan. Isi NIK dan data anggota berikutnya.');
+  kembaliKeForm();
+  $('nik').focus();
+});
+$('btnKeluargaBaru').addEventListener('click', () => {
+  kosongkan(['nkk','no_hp', ...FIELD_KELUARGA, ...FIELD_PRIBADI]);
+  hapusBerkas();
+  $('hitungNkk').textContent = '0'; statusNkk = 'kosong';
+  sembunyiBanner(); kembaliKeForm();
+  $('nkk').focus();
+});
+
+aturKunci();
+segarkanOtomatis();
+</script>
+</body>
+</html>
